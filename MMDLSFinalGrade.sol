@@ -35,39 +35,47 @@ contract MMDLSFinalGrade {
 
     // Compute the final grade for a student
     function computeFinalGrade(address student) public onlyProfessor {
-        require(student != address(0), "Invalid student address.");
+    require(student != address(0), "Invalid student address.");
 
-        uint256[8] memory studentGrades = grades[student];
+    uint256[8] memory studentGrades = grades[student];
 
-        // Extract individual grades
-        uint256 HA1 = studentGrades[0];
-        uint256 HA2 = studentGrades[1];
-        uint256 HA3 = studentGrades[2];
-        uint256 HA4 = studentGrades[3];
-        uint256 HA5 = studentGrades[4];
-        uint256 HA6 = studentGrades[5];
-        uint256 ExamTerm1 = studentGrades[6];
-        uint256 ExamFinal = studentGrades[7];
+    uint256 HA1 = studentGrades[0];
+    uint256 HA2 = studentGrades[1];
+    uint256 HA3 = studentGrades[2];
+    uint256 HA4 = studentGrades[3];
+    uint256 HA5 = studentGrades[4];
+    uint256 HA6 = studentGrades[5];
+    uint256 ExamTerm1 = studentGrades[6];
+    uint256 ExamFinal = studentGrades[7];
 
-        // Calculate Intermediate grade
-        uint256 maxTerm = max(HA1 + HA2, 2 * ExamTerm1);
-        uint256 intermediate = min(round((maxTerm + HA3 + HA4 + HA5 + HA6) / 6), 10);
+    // Calculate maxTerm using integer math
+    uint256 maxTerm = (HA1 + HA2 > 2 * ExamTerm1) ? (HA1 + HA2) : (2 * ExamTerm1);
 
-        uint256 finalGrade;
-
-        if (ExamFinal > 0) {
-            // Compute final grade when ExamFinal > 0
-            finalGrade = min(round((4 * intermediate + 6 * ExamFinal) / 10), 10);
-        } else {
-            // Compute final grade when ExamFinal == 0
-            finalGrade = intermediate >= 6 ? intermediate : 0;
-        }
-
-        // Update the final grade mapping
-        finalGrades[student] = finalGrade;
-
-        emit FinalGradeComputed(student, finalGrade);
+    // Calculate Intermediate grade using integer rounding
+    uint256 intermediate = ((maxTerm + HA3 + HA4 + HA5 + HA6) * 10 / 6 + 5) / 10;
+    if (intermediate > 10) {
+        intermediate = 10; // Cap at 10
     }
+
+    uint256 finalGrade;
+
+    if (ExamFinal > 0) {
+        // Calculate finalGrade using integer math
+        finalGrade = ((4 * intermediate + 6 * ExamFinal) * 10 / 10 + 5) / 10;
+        if (finalGrade > 10) {
+            finalGrade = 10; // Cap at 10
+        }
+    } else {
+        // Final grade depends on Intermediate
+        finalGrade = (intermediate >= 6) ? intermediate : 0;
+    }
+
+    // Update the mapping
+    finalGrades[student] = finalGrade;
+
+    emit FinalGradeComputed(student, finalGrade);
+    }
+
 
     // Utility function: Compute the max of two numbers
     function max(uint256 a, uint256 b) internal pure returns (uint256) {
